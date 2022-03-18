@@ -1,0 +1,7 @@
+version: "3"
+services:
+  demo:
+    image: tiantiandas/demo:prod
+    restart: unless-stopped
+    ports:
+      - 5000:5000/tcp
