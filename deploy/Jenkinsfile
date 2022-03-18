@@ -1,0 +1,38 @@
+pipeline {
+    agent {
+        label 'linux'
+    }
+
+    stages {
+        stage('checkout') {
+            steps {
+                checkout([$class: 'GitSCM', branches: [[name: params.SHA1]], userRemoteConfigs: [[url: 'REPO_URL']]])
+            }
+        }
+        stage('build') {
+            steps {
+                script {
+                    def image = docker.build('zhegao/demo:latest', '-f deploy/Dockerfile .')
+                    for (def tag : params.TAGS.split(',')) {
+                        image.push(tag)
+                    }
+                }
+            }
+        }
+        stage('deploy') {
+            steps {
+                kubernetesDeploy(
+                    kubeconfigId: 'k8s-prod-credentials',
+                    configs: '/path/to/demo-staging.yaml',
+                    enableConfigSubstitution: false,
+                    ssh: [sshCredentialsId: 'k8s-master-crenentials', sshServer: 'api.k8s-prod.foo.bar'],
+                )
+            }
+        }
+        stage('cleanup') {
+            steps {
+                sh 'docker rmi $(docker images -f dangling=true -q) || /bin/true'
+            }
+        }
+    }
+}

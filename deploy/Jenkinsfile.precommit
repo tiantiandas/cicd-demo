@@ -1,0 +1,29 @@
+pipeline {
+    agent {
+        label 'linux'
+    }
+    environment {
+        // SCANTIST_IMPORT_URL = "http://foo.com/bar
+        SCANTISTTOKEN = credentials('scantist-token')
+    }
+    stages {
+        stage('checkout') {
+            steps {
+                checkout([$class: 'GitSCM', branches: [[name: '*/master']], userRemoteConfigs: [[url: 'REPO_URL']]])
+            }
+        }
+        stage('build') {
+            steps {
+                script {
+                    try {
+                        sh 'bash dev-support/test-patch.sh'
+                        currentBuild.result = 'SUCCESS'
+                    } catch (exc) {
+                        currentBuild.result = 'FAILURE'
+                        throw exc
+                    }
+                }
+            }
+        }
+    }
+}
